@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "shield-aa-weather-risk"
+version = "0.1.0"
+description = "Risk scoring and CSP filtering for AA DFW pilot sequence pairs"
+requires-python = ">=3.10"
+dependencies = [
+  "pandas",
+  "numpy",
+  "scikit-learn",
+  "python-constraint",
+  "requests",
+  "matplotlib",
+  "seaborn",
+  "kafka-python",
+  "fastapi",
+  "uvicorn[standard]",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+

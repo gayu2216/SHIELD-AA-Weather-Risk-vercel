@@ -1,6 +1,11 @@
 # Data files (too large for GitHub)
 data/raw/
 data/processed/*.csv
+data/processed/*.jsonl
+data/processed/forecast_window_*.json
+data/processed/pairs_integrated_risk_*.csv
+data/processed/pairs_integrated_business_rules_monthly_*.csv
+data/processed/integrated_risk_meta_*.json
 
 # Python cache
 __pycache__/
@@ -11,8 +16,14 @@ __pycache__/
 # Environment
 .env
 venv/
+.venv/
 *.egg-info/
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# React dashboard
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo

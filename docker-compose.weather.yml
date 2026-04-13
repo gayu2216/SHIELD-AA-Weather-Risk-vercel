@@ -1,0 +1,27 @@
+# Local Kafka-compatible broker (Redpanda) for weather event streaming.
+# Producer runs on host; connect with KAFKA_BOOTSTRAP_SERVERS=localhost:19092
+#
+# Start: docker compose -f docker-compose.weather.yml up -d
+# Stop:  docker compose -f docker-compose.weather.yml down
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.11
+    container_name: shield-redpanda
+    command:
+      - redpanda
+      - start
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --overprovisioned
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://redpanda:9092,external://localhost:19092
+    ports:
+      - "19092:19092"
+      - "9644:9644"
