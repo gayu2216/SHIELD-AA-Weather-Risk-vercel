@@ -11,13 +11,8 @@ dependencies = [
   "pandas",
   "numpy",
   "scikit-learn",
-  "python-constraint",
   "requests",
-  "matplotlib",
-  "seaborn",
-  "kafka-python",
   "fastapi",
-  "uvicorn[standard]",
   "xgboost",
 ]
 

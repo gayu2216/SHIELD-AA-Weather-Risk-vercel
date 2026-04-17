@@ -2,6 +2,13 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "cd frontend && npm install && npm run build",
   "outputDirectory": "frontend/dist",
+  "functions": {
+    "app.py": {
+      "maxDuration": 60,
+      "includeFiles": "{data/processed/pairs_final_with_duty.csv,data/processed/route_stats.csv,data/processed/weather_delay_xgb_20k/weather_delay_xgb_pipeline.joblib,data/raw/noaa_global_hourly_cache/isd-history.txt}",
+      "excludeFiles": "{frontend/**,notebooks/**,api/**,.git/**,data/raw/**,data/processed/**,__pycache__/**,**/*.ipynb,**/*.parquet,**/*.pkl,**/*.jsonl}"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
