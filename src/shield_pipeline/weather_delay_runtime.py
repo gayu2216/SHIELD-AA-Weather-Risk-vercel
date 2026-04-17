@@ -50,24 +50,28 @@ def load_weather_delay_model(model_path: str | None = None):
 @lru_cache(maxsize=1)
 def route_lookup() -> dict[tuple[str, str], RouteStats]:
     cfg = PipelineConfig()
-    path = cfg.scoped_file
-    if not path.exists():
-        raise FileNotFoundError(f"Missing scoped file: {path}")
+    route_stats_path = cfg.route_stats_file
+    if route_stats_path.exists():
+        grouped = pd.read_csv(route_stats_path)
+    else:
+        path = cfg.scoped_file
+        if not path.exists():
+            raise FileNotFoundError(f"Missing route stats file {route_stats_path} and scoped file {path}")
 
-    df = pd.read_csv(path, usecols=lambda c: c in {"ORIGIN", "DEST", "DISTANCE", "CRS_ELAPSED_TIME", "CRSElapsedTime"}, low_memory=False)
-    df = normalize_bts_columns(df)
-    for col in ["DISTANCE", "CRS_ELAPSED_TIME"]:
-        if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors="coerce")
+        df = pd.read_csv(path, usecols=lambda c: c in {"ORIGIN", "DEST", "DISTANCE", "CRS_ELAPSED_TIME", "CRSElapsedTime"}, low_memory=False)
+        df = normalize_bts_columns(df)
+        for col in ["DISTANCE", "CRS_ELAPSED_TIME"]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    grouped = (
-        df.groupby(["ORIGIN", "DEST"], as_index=False)
-        .agg(
-            distance=("DISTANCE", "median"),
-            crs_elapsed_minutes=("CRS_ELAPSED_TIME", "median"),
+        grouped = (
+            df.groupby(["ORIGIN", "DEST"], as_index=False)
+            .agg(
+                distance=("DISTANCE", "median"),
+                crs_elapsed_minutes=("CRS_ELAPSED_TIME", "median"),
+            )
+            .dropna(subset=["distance", "crs_elapsed_minutes"])
         )
-        .dropna(subset=["distance", "crs_elapsed_minutes"])
-    )
     lookup: dict[tuple[str, str], RouteStats] = {}
     for row in grouped.itertuples(index=False):
         lookup[(str(row.ORIGIN).upper(), str(row.DEST).upper())] = RouteStats(

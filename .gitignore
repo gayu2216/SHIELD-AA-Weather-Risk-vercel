@@ -1,5 +1,5 @@
 # Data files (too large for GitHub)
-data/raw/
+data/raw/*
 data/processed/*.csv
 data/processed/*.pkl
 data/processed/*.jsonl
@@ -28,3 +28,10 @@ Thumbs.db
 frontend/node_modules/
 frontend/dist/
 *.tsbuildinfo
+
+# Required runtime artifacts for Vercel deploys
+!data/raw/noaa_global_hourly_cache/
+data/raw/noaa_global_hourly_cache/*
+!data/raw/noaa_global_hourly_cache/isd-history.txt
+!data/processed/route_stats.csv
+!data/processed/pairs_final_with_duty.csv

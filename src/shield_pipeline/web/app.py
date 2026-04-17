@@ -4,6 +4,7 @@ import json
 import math
 import os
 from datetime import date
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -89,6 +90,11 @@ def _forecast_airports_for_app(date_str: str | None = None) -> list[str]:
     return airports_for_pair_time_prediction(pairs)
 
 
+@lru_cache(maxsize=16)
+def _cached_timepoint_weather_bundle_for_app(date_str: str) -> dict:
+    return build_timepoint_weather_bundle_for_airports(_forecast_airports_for_app(date_str), date_str)
+
+
 app = FastAPI(title="SHIELD Weather Forecast", version="1.0.0")
 
 app.add_middleware(
@@ -123,7 +129,7 @@ def api_forecast(
 ) -> dict:
     try:
         if date and time:
-            bundle = build_timepoint_weather_bundle_for_airports(_forecast_airports_for_app(date), date)
+            bundle = _cached_timepoint_weather_bundle_for_app(date)
         else:
             bundle = build_forecast_bundle(days)
         if date and time:
@@ -219,7 +225,10 @@ def api_risk_pairs(
 
     try:
         needed_airports = airports_for_pair_time_prediction(pairs)
-        bundle = build_timepoint_weather_bundle_for_airports(needed_airports, date)
+        if needed_airports == _forecast_airports_for_app(date):
+            bundle = _cached_timepoint_weather_bundle_for_app(date)
+        else:
+            bundle = build_timepoint_weather_bundle_for_airports(needed_airports, date)
         hourly_by_airport = {
             code: (data.get("hourly") or [])
             for code, data in bundle.get("airports", {}).items()

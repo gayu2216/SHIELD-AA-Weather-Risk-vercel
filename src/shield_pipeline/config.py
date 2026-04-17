@@ -7,6 +7,7 @@ class PipelineConfig:
     raw_file: Path = Path("data/raw/bts_master_raw.csv")
     """AA flights with ORIGIN=DFW or DEST=DFW (hub-edge master; no other airport filter)."""
     scoped_file: Path = Path("data/processed/dfw_hub_flights_master.csv")
+    route_stats_file: Path = Path("data/processed/route_stats.csv")
     airport_summary_file: Path = Path("data/processed/airport_month_summary.csv")
     airport_risk_file: Path = Path("data/processed/airport_risk_scores.csv")
     pair_risk_file: Path = Path("data/processed/pair_risk_scores.csv")
@@ -25,4 +26,3 @@ class PipelineConfig:
     top_n_schedule_per_month: int = 10
     top_n_forbidden_pairs: int = 50
     read_chunksize: int = 200_000
-
