@@ -39,5 +39,6 @@ export const AIRPORT_COORDS: Record<string, [number, number]> = {
 };
 
 export function coords(code: string): [number, number] | null {
-  return AIRPORT_COORDS[code] ?? null;
+  const k = String(code).trim().toUpperCase();
+  return AIRPORT_COORDS[k] ?? null;
 }

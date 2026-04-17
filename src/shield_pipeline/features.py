@@ -5,6 +5,8 @@ from typing import Iterable
 import pandas as pd
 from pathlib import Path
 
+from shield_pipeline.bts_schema import ALL_POSSIBLE_COLS, normalize_bts_columns
+
 
 TARGET_AIRPORTS: list[str] = [
     "LAX", "LAS", "ATL", "ORD", "DEN", "PHX", "MIA", "JFK",
@@ -14,23 +16,6 @@ TARGET_AIRPORTS: list[str] = [
     "RDU", "TPA", "FLL",
 ]
 
-COLUMN_ALIASES: dict[str, list[str]] = {
-    "REPORTING_AIRLINE": ["REPORTING_AIRLINE", "Reporting_Airline", "OP_UNIQUE_CARRIER", "UniqueCarrier"],
-    "ORIGIN": ["ORIGIN", "Origin"],
-    "DEST": ["DEST", "Dest"],
-    "MONTH": ["MONTH", "Month"],
-    "ARR_DELAY": ["ARR_DELAY", "ArrDelay"],
-    "WEATHER_DELAY": ["WEATHER_DELAY", "WeatherDelay"],
-    "CANCELLED": ["CANCELLED", "Cancelled"],
-}
-
-
-def _all_possible_cols() -> set[str]:
-    cols: set[str] = set()
-    for aliases in COLUMN_ALIASES.values():
-        cols.update(aliases)
-    return cols
-
 
 def _required_cols(df: pd.DataFrame, columns: Iterable[str]) -> None:
     missing = [c for c in columns if c not in df.columns]
@@ -38,25 +23,12 @@ def _required_cols(df: pd.DataFrame, columns: Iterable[str]) -> None:
         raise ValueError(f"Missing required columns: {missing}")
 
 
-def _normalize_bts_columns(df: pd.DataFrame) -> pd.DataFrame:
-    rename_map: dict[str, str] = {}
-    for standard_name, aliases in COLUMN_ALIASES.items():
-        for alias in aliases:
-            if alias in df.columns:
-                rename_map[alias] = standard_name
-                break
-    return df.rename(columns=rename_map)
-
-
 def scope_aa_dfw(data: pd.DataFrame) -> pd.DataFrame:
-    data = _normalize_bts_columns(data)
+    """AA-only rows where the flight touches DFW (origin or destination). No other airport filter."""
+    data = normalize_bts_columns(data)
     _required_cols(data, ["REPORTING_AIRLINE", "ORIGIN", "DEST"])
     aa = data[data["REPORTING_AIRLINE"] == "AA"].copy()
-    aa_dfw = aa[(aa["ORIGIN"] == "DFW") | (aa["DEST"] == "DFW")].copy()
-    scoped = aa_dfw[
-        aa_dfw["ORIGIN"].isin(TARGET_AIRPORTS) | aa_dfw["DEST"].isin(TARGET_AIRPORTS)
-    ].copy()
-    return scoped
+    return aa[(aa["ORIGIN"] == "DFW") | (aa["DEST"] == "DFW")].copy()
 
 
 def process_raw_to_scoped_and_summary(
@@ -75,17 +47,16 @@ def process_raw_to_scoped_and_summary(
 
     first_write = True
     chunk_summaries: list[pd.DataFrame] = []
-    wanted_cols = _all_possible_cols()
 
     reader = pd.read_csv(
         raw_file,
-        usecols=lambda c: c in wanted_cols,
+        usecols=lambda c: c in ALL_POSSIBLE_COLS,
         chunksize=chunksize,
         low_memory=False,
     )
 
     for chunk in reader:
-        chunk = _normalize_bts_columns(chunk)
+        chunk = normalize_bts_columns(chunk)
         try:
             scoped = scope_aa_dfw(chunk)
         except ValueError:
@@ -169,7 +140,7 @@ def process_raw_to_scoped_and_summary(
 
 
 def build_airport_month_summary(scoped: pd.DataFrame) -> pd.DataFrame:
-    scoped = _normalize_bts_columns(scoped)
+    scoped = normalize_bts_columns(scoped)
     _required_cols(scoped, ["MONTH", "ORIGIN", "ARR_DELAY", "WEATHER_DELAY", "CANCELLED"])
 
     df = scoped.copy()

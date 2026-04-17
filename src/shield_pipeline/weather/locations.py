@@ -1,10 +1,19 @@
 # Approximate airport coordinates (deg lat, deg lon) for Open-Meteo.
+
+from __future__ import annotations
+
+from functools import lru_cache
+from pathlib import Path
+
+
 AIRPORT_LAT_LON: dict[str, tuple[float, float]] = {
+    "DFW": (32.8968, -97.0380),
     "LAX": (33.9425, -118.4081),
     "LAS": (36.0801, -115.1523),
     "ATL": (33.6367, -84.4281),
     "ORD": (41.9786, -87.9047),
     "DEN": (39.8617, -104.6731),
+    "EGE": (39.6426, -106.9177),
     "PHX": (33.4343, -112.0116),
     "MIA": (25.7933, -80.2906),
     "JFK": (40.6397, -73.7789),
@@ -35,4 +44,28 @@ AIRPORT_LAT_LON: dict[str, tuple[float, float]] = {
     "RDU": (35.8776, -78.7875),
     "TPA": (27.9755, -82.5333),
     "FLL": (26.0726, -80.1528),
+    "FCA": (48.3105, -114.2560),
 }
+
+NOAA_CACHE_DIR = Path("data/raw/noaa_global_hourly_cache")
+
+
+@lru_cache(maxsize=1)
+def _station_registry():
+    from shield_pipeline.weather.noaa_global_hourly import ISDStationRegistry
+
+    return ISDStationRegistry(NOAA_CACHE_DIR)
+
+
+@lru_cache(maxsize=512)
+def airport_lat_lon(code: str) -> tuple[float, float] | None:
+    clean = str(code or "").strip().upper()
+    if not clean:
+        return None
+    if clean in AIRPORT_LAT_LON:
+        return AIRPORT_LAT_LON[clean]
+
+    station = _station_registry().station_for_airport(clean)
+    if station and station.latitude is not None and station.longitude is not None:
+        return (station.latitude, station.longitude)
+    return None

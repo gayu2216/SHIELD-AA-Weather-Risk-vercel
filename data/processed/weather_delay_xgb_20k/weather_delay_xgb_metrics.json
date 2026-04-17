@@ -1,0 +1,11 @@
+{
+  "rows_total": 20000,
+  "rows_train": 16000,
+  "rows_test": 4000,
+  "target_mean_total_minutes": 1.02415,
+  "target_mean_train_minutes": 1.0131875,
+  "target_mean_test_minutes": 1.068,
+  "mae_minutes": 1.9236166133532133,
+  "rmse_minutes": 18.40580878902382,
+  "r2": 0.04963456638785557
+}

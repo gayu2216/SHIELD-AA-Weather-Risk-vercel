@@ -5,7 +5,8 @@ from pathlib import Path
 @dataclass(frozen=True)
 class PipelineConfig:
     raw_file: Path = Path("data/raw/bts_master_raw.csv")
-    scoped_file: Path = Path("data/processed/aa_dfw_scoped.csv")
+    """AA flights with ORIGIN=DFW or DEST=DFW (hub-edge master; no other airport filter)."""
+    scoped_file: Path = Path("data/processed/dfw_hub_flights_master.csv")
     airport_summary_file: Path = Path("data/processed/airport_month_summary.csv")
     airport_risk_file: Path = Path("data/processed/airport_risk_scores.csv")
     pair_risk_file: Path = Path("data/processed/pair_risk_scores.csv")

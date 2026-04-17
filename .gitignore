@@ -1,6 +1,7 @@
 # Data files (too large for GitHub)
 data/raw/
 data/processed/*.csv
+data/processed/*.pkl
 data/processed/*.jsonl
 data/processed/forecast_window_*.json
 data/processed/pairs_integrated_risk_*.csv

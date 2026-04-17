@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import time
 from typing import Any
+from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
@@ -15,6 +17,40 @@ DAILY_FIELDS = (
     "weather_code,precipitation_sum,precipitation_probability_max,"
     "wind_speed_10m_max,temperature_2m_max,temperature_2m_min"
 )
+HOURLY_FIELDS = (
+    "temperature_2m,dew_point_2m,precipitation,precipitation_probability,"
+    "wind_speed_10m,pressure_msl,visibility,cloud_cover_low,weather_code"
+)
+
+MAX_RETRIES = 4
+BASE_BACKOFF_SECONDS = 1.5
+
+
+def _open_meteo_json(url: str, *, timeout: int, user_agent: str) -> dict[str, Any]:
+    req = Request(url, headers={"User-Agent": user_agent})
+    last_error: Exception | None = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            with urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode())
+        except HTTPError as e:
+            last_error = e
+            if e.code != 429 or attempt == MAX_RETRIES - 1:
+                raise
+            retry_after = e.headers.get("Retry-After")
+            try:
+                sleep_s = float(retry_after) if retry_after is not None else BASE_BACKOFF_SECONDS * (2 ** attempt)
+            except ValueError:
+                sleep_s = BASE_BACKOFF_SECONDS * (2 ** attempt)
+            time.sleep(max(0.5, sleep_s))
+        except URLError as e:
+            last_error = e
+            if attempt == MAX_RETRIES - 1:
+                raise
+            time.sleep(BASE_BACKOFF_SECONDS * (2 ** attempt))
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("Open-Meteo request failed without an explicit error.")
 
 
 def fetch_forecast_daily(lat: float, lon: float, forecast_days: int, timeout: int = 45) -> dict[str, Any]:
@@ -29,9 +65,22 @@ def fetch_forecast_daily(lat: float, lon: float, forecast_days: int, timeout: in
         "timezone": "auto",
     }
     url = f"{OPEN_METEO_BASE}?{urlencode(params)}"
-    req = Request(url, headers={"User-Agent": "SHIELD-Forecast/1.0"})
-    with urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode())
+    return _open_meteo_json(url, timeout=timeout, user_agent="SHIELD-Forecast/1.0")
+
+
+def fetch_forecast_daily_hourly(lat: float, lon: float, forecast_days: int, timeout: int = 45) -> dict[str, Any]:
+    days = max(FORECAST_DAYS_MIN, min(int(forecast_days), FORECAST_DAYS_MAX))
+    params = {
+        "latitude": lat,
+        "longitude": lon,
+        "daily": DAILY_FIELDS,
+        "hourly": HOURLY_FIELDS,
+        "forecast_days": days,
+        "wind_speed_unit": "ms",
+        "timezone": "auto",
+    }
+    url = f"{OPEN_METEO_BASE}?{urlencode(params)}"
+    return _open_meteo_json(url, timeout=timeout, user_agent="SHIELD-Forecast/1.0")
 
 
 def daily_rows(api_response: dict[str, Any]) -> list[dict[str, Any]]:
@@ -44,6 +93,21 @@ def daily_rows(api_response: dict[str, Any]) -> list[dict[str, Any]]:
         row = {"date": times[i]}
         for k in keys:
             arr = daily.get(k) or []
+            row[k] = arr[i] if i < len(arr) else None
+        rows.append(row)
+    return rows
+
+
+def hourly_rows(api_response: dict[str, Any]) -> list[dict[str, Any]]:
+    hourly = api_response.get("hourly") or {}
+    times = hourly.get("time") or []
+    rows: list[dict[str, Any]] = []
+    n = len(times)
+    keys = [k for k in hourly.keys() if k != "time"]
+    for i in range(n):
+        row = {"time": times[i]}
+        for k in keys:
+            arr = hourly.get(k) or []
             row[k] = arr[i] if i < len(arr) else None
         rows.append(row)
     return rows

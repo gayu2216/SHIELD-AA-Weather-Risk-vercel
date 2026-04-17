@@ -63,17 +63,17 @@ export default function MapBoard({ pairs, selected }: Props) {
 
     addM("DFW");
 
-    const selA = selected ? String(selected.airport_A) : "";
-    const selB = selected ? String(selected.airport_B) : "";
+    const selA = selected ? String(selected.airport_A).trim().toUpperCase() : "";
+    const selB = selected ? String(selected.airport_B).trim().toUpperCase() : "";
     const selM = selected ? Number(selected.month) : NaN;
 
     for (const p of pairs) {
-      const a = String(p.airport_A ?? "");
-      const bb = String(p.airport_B ?? "");
+      const a = String(p.airport_A ?? "").trim().toUpperCase();
+      const bb = String(p.airport_B ?? "").trim().toUpperCase();
       const ca = coords(a);
       const cb = coords(bb);
       if (!ca || !cb) continue;
-      const forbidden = String(p.integrated_risk_class ?? "") === "Forbidden";
+      const forbidden = String(p.xgboost_pair_risk_class ?? p.integrated_risk_class ?? "") === "Forbidden";
       const color = forbidden ? FORBIDDEN : SAFE;
       const isSel = selected && a === selA && bb === selB && Number(p.month) === selM;
       if (isSel) {
@@ -106,7 +106,7 @@ export default function MapBoard({ pairs, selected }: Props) {
         ];
         hubLegLine = {
           positions,
-          color: String(selected.integrated_risk_class) === "Forbidden" ? FORBIDDEN : SAFE,
+          color: String(selected.xgboost_pair_risk_class ?? selected.integrated_risk_class) === "Forbidden" ? FORBIDDEN : SAFE,
         };
         positions.forEach((pt) => b.extend(pt as L.LatLngTuple));
       }
@@ -153,7 +153,8 @@ export default function MapBoard({ pairs, selected }: Props) {
           .map((m) => {
             const hi =
               !!selected &&
-              (String(selected.airport_A) === m.code || String(selected.airport_B) === m.code);
+              (String(selected.airport_A).trim().toUpperCase() === m.code ||
+                String(selected.airport_B).trim().toUpperCase() === m.code);
             return (
               <Marker key={m.code} position={m.pos} icon={apIcon(m.code, hi)}>
                 <Popup>{m.code}</Popup>

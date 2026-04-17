@@ -8,6 +8,15 @@ export type WindowsResponse = {
 
 export type PairRow = Record<string, unknown>;
 
+export type ForecastAirport = {
+  daily?: Record<string, unknown>[];
+  hourly?: Record<string, unknown>[];
+  summary?: Record<string, unknown>;
+  error?: string;
+  latitude?: number;
+  longitude?: number;
+};
+
 export type PairsApiResponse = {
   meta: Record<string, unknown>;
   summary: {
@@ -24,16 +33,9 @@ export type PairsApiResponse = {
 export type ForecastBundle = {
   window_days: number;
   generated_at_utc?: string;
-  airports: Record<
-    string,
-    {
-      daily?: unknown[];
-      summary?: Record<string, unknown>;
-      error?: string;
-      latitude?: number;
-      longitude?: number;
-    }
-  >;
+  selected_departure_date?: string;
+  selected_departure_time?: string;
+  airports: Record<string, ForecastAirport>;
 };
 
 export async function fetchWindows(): Promise<WindowsResponse> {
@@ -42,15 +44,24 @@ export async function fetchWindows(): Promise<WindowsResponse> {
   return r.json();
 }
 
-export async function fetchPairs(days: number, month: number): Promise<PairsApiResponse> {
-  const q = new URLSearchParams({ days: String(days), month: String(month) });
+export async function fetchPairs(
+  days: number,
+  date?: string,
+  time?: string,
+): Promise<PairsApiResponse> {
+  const q = new URLSearchParams({ days: String(days) });
+  if (date) q.set("date", date);
+  if (time) q.set("time", time);
   const r = await fetch(`/api/risk/pairs?${q.toString()}`);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
 
-export async function fetchForecast(days: number): Promise<ForecastBundle> {
-  const r = await fetch(`/api/forecast?days=${encodeURIComponent(String(days))}`);
+export async function fetchForecast(days: number, date?: string, time?: string): Promise<ForecastBundle> {
+  const q = new URLSearchParams({ days: String(days) });
+  if (date) q.set("date", date);
+  if (time) q.set("time", time);
+  const r = await fetch(`/api/forecast?${q.toString()}`);
   if (!r.ok) throw new Error(await r.text());
   return r.json();
 }
